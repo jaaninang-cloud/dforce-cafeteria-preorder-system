@@ -276,13 +276,6 @@ function pRegister() {
         </div>
         <h2 style="margin-top:14px">Create Your Account</h2>
         <p class="muted">Set up your own profile using your CSPC email.</p>
-        <div id="gbox" hidden>
-        <div id="gbtn"></div>
-        <p class="muted c" style="margin:8px 0">Recommended: your name, CSPC email and photo are filled in automatically. You only add your ID number and a password.</p>
-        <div class="or">
-          <span>or fill in the form yourself</span>
-        </div>
-        </div>
  <label>I am a…</label>
         <div class="types">${['student', 'employee', 'instructor', 'administrator', 'staff'].map((t, i) => `<label class="type"><input type="radio" name="ut" value="${t}" ${i ? '' : 'checked'}><span>${TYPE[t]}</span></label>`).join('')}</div>
  <div id="staffbox" hidden>
