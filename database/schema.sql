@@ -1,5 +1,9 @@
 -- CSPC Cafeteria Pre-Order System: database schema (SQLite)
-CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS settings(
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -10,7 +14,11 @@ CREATE TABLE IF NOT EXISTS users(
   department TEXT NOT NULL DEFAULT '',
   contact TEXT NOT NULL DEFAULT '',
   password_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT(datetime('now')));
+  photo TEXT NOT NULL DEFAULT '',
+  pw_set INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT(datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS menu_items(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -18,9 +26,14 @@ CREATE TABLE IF NOT EXISTS menu_items(
   price REAL NOT NULL CHECK(price>=0),
   stock INTEGER NOT NULL DEFAULT 0 CHECK(stock>=0),
   prep_minutes INTEGER NOT NULL DEFAULT 10,
-  description TEXT, ingredients TEXT, allergens TEXT,
+  description TEXT,
+  ingredients TEXT,
+  allergens TEXT,
   rating REAL NOT NULL DEFAULT 4.5,
-  image TEXT NOT NULL DEFAULT '');
+  image TEXT NOT NULL DEFAULT '',
+  active INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS orders(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   order_no TEXT NOT NULL UNIQUE,
@@ -31,21 +44,52 @@ CREATE TABLE IF NOT EXISTS orders(
   service_fee REAL NOT NULL,
   total REAL NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','preparing','ready','claimed','cancelled')),
-  created_at TEXT NOT NULL);
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS order_items(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   item_id INTEGER NOT NULL REFERENCES menu_items(id),
-  name TEXT NOT NULL, category TEXT,
+  name TEXT NOT NULL,
+  category TEXT,
   unit_price REAL NOT NULL,
-  quantity INTEGER NOT NULL CHECK(quantity>0));
+  quantity INTEGER NOT NULL CHECK(quantity>0)
+);
+
 CREATE TABLE IF NOT EXISTS order_status_log(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  status TEXT NOT NULL, changed_at TEXT NOT NULL);
+  status TEXT NOT NULL,
+  changed_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS audit_log(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT NOT NULL, user_ref TEXT, role TEXT, action TEXT NOT NULL, detail TEXT);
-CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(order_date,slot);
+  created_at TEXT NOT NULL,
+  user_ref TEXT,
+  role TEXT,
+  action TEXT NOT NULL,
+  detail TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(order_date, slot);
+
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_items_order ON order_items(order_id);
+
+-- In-app notifications (order updates for customers, new orders for staff). Kept in the database so a person
+-- still sees them if they were offline when the status changed.
+CREATE TABLE IF NOT EXISTS notifications(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  order_no TEXT,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  read_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, id);

@@ -1,8 +1,84 @@
 -- Reference schema for MySQL / MariaDB (phpMyAdmin, XAMPP). Not used by the running app, which uses SQLite.
-CREATE DATABASE IF NOT EXISTS cafeteria_preorder CHARACTER SET utf8mb4; USE cafeteria_preorder;
-CREATE TABLE users(id INT AUTO_INCREMENT PRIMARY KEY,name VARCHAR(60) NOT NULL,student_id VARCHAR(20) NOT NULL UNIQUE,email VARCHAR(80) NOT NULL UNIQUE,role ENUM('student','staff') NOT NULL,password_hash VARCHAR(255) NOT NULL,created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE menu_items(id INT AUTO_INCREMENT PRIMARY KEY,name VARCHAR(40) NOT NULL,category ENUM('Main Dish','Snacks','Drinks','Dessert') NOT NULL,price DECIMAL(8,2) NOT NULL CHECK(price>=0),stock INT NOT NULL DEFAULT 0 CHECK(stock>=0),prep_minutes INT NOT NULL DEFAULT 10,description VARCHAR(120),ingredients VARCHAR(255),allergens VARCHAR(255),rating DECIMAL(2,1) DEFAULT 4.5);
-CREATE TABLE orders(id INT AUTO_INCREMENT PRIMARY KEY,order_no VARCHAR(16) NOT NULL UNIQUE,order_date CHAR(8) NOT NULL,user_id INT NOT NULL,slot CHAR(5) NOT NULL,slot_label VARCHAR(20) NOT NULL,service_fee DECIMAL(8,2) NOT NULL,total DECIMAL(8,2) NOT NULL,status ENUM('pending','preparing','ready','claimed','cancelled') NOT NULL DEFAULT 'pending',created_at DATETIME NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id),INDEX(order_date,slot));
-CREATE TABLE order_items(id INT AUTO_INCREMENT PRIMARY KEY,order_id INT NOT NULL,item_id INT NOT NULL,name VARCHAR(40) NOT NULL,category VARCHAR(20),unit_price DECIMAL(8,2) NOT NULL,quantity INT NOT NULL CHECK(quantity>0),FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE,FOREIGN KEY(item_id) REFERENCES menu_items(id));
-CREATE TABLE order_status_log(id INT AUTO_INCREMENT PRIMARY KEY,order_id INT NOT NULL,status VARCHAR(12) NOT NULL,changed_at DATETIME NOT NULL,FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE);
-CREATE TABLE audit_log(id INT AUTO_INCREMENT PRIMARY KEY,created_at DATETIME NOT NULL,user_ref VARCHAR(20),role VARCHAR(10),action VARCHAR(40) NOT NULL,detail VARCHAR(255));
+CREATE DATABASE IF NOT EXISTS cafeteria_preorder CHARACTER SET utf8mb4;
+USE cafeteria_preorder;
+
+CREATE TABLE users(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(60) NOT NULL,
+  student_id VARCHAR(20) NOT NULL UNIQUE,
+  email VARCHAR(80) NOT NULL UNIQUE,
+  role ENUM('student','staff') NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE menu_items(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(40) NOT NULL,
+  category ENUM('Main Dish','Snacks','Drinks','Dessert') NOT NULL,
+  price DECIMAL(8,2) NOT NULL CHECK(price>=0),
+  stock INT NOT NULL DEFAULT 0 CHECK(stock>=0),
+  prep_minutes INT NOT NULL DEFAULT 10,
+  description VARCHAR(120),
+  ingredients VARCHAR(255),
+  allergens VARCHAR(255),
+  rating DECIMAL(2,1) DEFAULT 4.5
+);
+
+CREATE TABLE orders(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_no VARCHAR(16) NOT NULL UNIQUE,
+  order_date CHAR(8) NOT NULL,
+  user_id INT NOT NULL,
+  slot CHAR(5) NOT NULL,
+  slot_label VARCHAR(20) NOT NULL,
+  service_fee DECIMAL(8,2) NOT NULL,
+  total DECIMAL(8,2) NOT NULL,
+  status ENUM('pending','preparing','ready','claimed','cancelled') NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  INDEX(order_date,slot)
+);
+
+CREATE TABLE order_items(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  item_id INT NOT NULL,
+  name VARCHAR(40) NOT NULL,
+  category VARCHAR(20),
+  unit_price DECIMAL(8,2) NOT NULL,
+  quantity INT NOT NULL CHECK(quantity>0),
+  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY(item_id) REFERENCES menu_items(id)
+);
+
+CREATE TABLE order_status_log(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  status VARCHAR(12) NOT NULL,
+  changed_at DATETIME NOT NULL,
+  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+CREATE TABLE audit_log(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  created_at DATETIME NOT NULL,
+  user_ref VARCHAR(20),
+  role VARCHAR(10),
+  action VARCHAR(40) NOT NULL,
+  detail VARCHAR(255)
+);
+
+CREATE TABLE notifications(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  order_no VARCHAR(20),
+  kind VARCHAR(20) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  body VARCHAR(300) NOT NULL,
+  created_at DATETIME NOT NULL,
+  read_at DATETIME NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_notifications_user (user_id, id)
+);
+

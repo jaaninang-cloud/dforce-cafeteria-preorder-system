@@ -91,3 +91,45 @@ Password hashing (scrypt, per-user salt) · HMAC-signed HttpOnly SameSite=Strict
 SQLite suits a single cafeteria server; move to MySQL/PostgreSQL for many concurrent users · HTTPS must be enabled by the host · email verification (OTP) / password reset by email, notifications and online payment are not included. Without email verification the system only checks that the address *ends* in the CSPC domain, not that the person owns it.
 
 **Fixing a wrong food photo:** run `npm run images` to download any missing photos. Dishes that had a wrong photo (Halo-Halo, Turon, Bottled Water) now use the dish's Wikipedia lead photo or a filtered search, and empty or invalid downloads are rejected. Halo-Halo, Turon and Bottled Water now ship with rendered images; Missing photos still fall back to a neutral "Photo coming soon" plate. To use your own photo, save it as `public/img/food/<name>.jpg` (for example `halo-halo.jpg`); existing files are never overwritten unless you run `npm run images -- --force`.
+
+
+## Menu photos (staff)
+In **Inventory**, the *Add Item* form has a photo picker. Pick a real photo of the food or drink (take it with the phone camera or choose a file); it is shrunk in the browser and saved on the server. Use the file picker in the *Photo* column to change the photo of an existing item. Photos are stored in `database/uploads/` (or in an `uploads` folder next to `DB_FILE`; set `UPLOAD_DIR` to override). If an item has the same name as a stock photo in `public/img/food/` (for example `Chicken Adobo`), that photo is used automatically.
+
+If you add an item **without** a photo, the server looks for a real, free-licensed photo of it on Wikimedia Commons (needs internet on the server). The result is a best guess, so check it and replace it with your own photo if it is wrong. Items without a photo also get a **Find photo** button in Inventory. Credits of auto-found photos are written to `database/uploads/CREDITS.md`.
+
+**Delete item:** each row in Inventory has a *Delete* button. The item disappears from the customer menu and cannot be ordered, but it is only hidden (not erased) so past orders and the daily report stay correct.
+
+**Live delete:** when staff delete an item in Inventory it is hidden from every customer within about 5 seconds (no refresh needed) and is removed from their carts. An order that still contains a deleted item is rejected with a clear message.
+
+**Profile after sign-in:** signing in with a CSPC email opens *that account's own* profile (name, CSPC email, ID number, course/department, contact, member-since date and order counts). The name and email in the top bar link to the profile at any time; staff have a Profile page too. Carts are kept per account.
+
+**Profile photo:** every account (customer and staff) can add, change or remove its own profile photo on the Profile page. The photo is shrunk in the browser, checked by its real file type on the server and shown on the Profile page and in the top bar. Without a photo, the initials are shown. Real photos from the school Google/Microsoft account need an "Sign in with CSPC account" setup (client ID from the school) and are not included.
+
+## Sign in with Google (CSPC school account)
+
+A **Continue with Google** button appears on the **Create Account** page and a **Sign in with Google** button on the Sign In page when the server has a Google client ID. After the customer signs in with their `@my.cspc.edu.ph` Google account, the system creates or opens their account and fills in the **name, email and profile photo from Google automatically**. First-time Google users only add their ID number, course/department and contact number on the Profile page. New accounts made this way are always customers (staff accounts still need the staff access code). Existing accounts with the same email are reused.
+
+**One-time setup (free):**
+1. Open https://console.cloud.google.com and create a project (any name).
+2. *APIs & Services → OAuth consent screen*: choose **External**, fill in the app name (CSPC Cafeteria Pre-Order) and your email. Under *Audience* click **Publish app** so every CSPC account can sign in (only the basic email/profile scopes are used, so no review is needed). If the school's Google admin makes it **Internal**, only CSPC accounts can sign in.
+3. *APIs & Services → Credentials → Create credentials → OAuth client ID → Web application*. Under **Authorized JavaScript origins** add `http://localhost:3000` (and your real https address when you deploy). Copy the **Client ID**.
+4. Start the server with the client ID:
+   - Windows PowerShell: `$env:GOOGLE_CLIENT_ID="your-id.apps.googleusercontent.com"; npm start`
+   - Windows CMD: `set GOOGLE_CLIENT_ID=your-id.apps.googleusercontent.com&& npm start`
+   - Mac/Linux: `GOOGLE_CLIENT_ID=your-id.apps.googleusercontent.com npm start`
+
+Notes: Google accepts only `localhost` or an https domain as origin, so open the site through `http://localhost:3000` on the computer, or deploy it on an https domain for phones. The server needs internet to check the sign-in with Google. Without `GOOGLE_CLIENT_ID` the button is hidden and normal email + password login keeps working.
+
+**Recommended flow for customers:** on *Create Account* press the Google button once and pick the CSPC account. The name, CSPC email and photo are filled in from Google, then the customer adds the ID number, contact and **creates a password** on the Profile page. From then on they sign in with the **CSPC email + password** and the profile and photo are already there (the photo is stored on the server), so no Google step is needed again. Accounts made the old way (form + password) get their Google photo the first time they press the Google button.
+
+## Using the system on a phone
+
+1. **Same Wi-Fi (quickest test).** Run `npm start`. The terminal prints a line such as `On a phone on the same Wi-Fi: http://192.168.1.10:3000`. Open that address on the phone. If it does not open, allow Node.js through the Windows Firewall (private network).
+   Limits of plain `http://`: browsers block the phone **camera** (QR scanning), **browser notifications** and Google sign-in on it. Ordering, tracking, the QR pass and manual order-number entry still work.
+2. **Public HTTPS link (everything works, including camera and Google sign-in).** Start the system, then in a second terminal run a tunnel:
+   - Cloudflare Quick Tunnel (no account): `cloudflared tunnel --url http://localhost:3000` prints a `https://….trycloudflare.com` link. The link changes every time and is meant for testing/demos.
+   - ngrok (free account): `ngrok http 3000` gives a `https://….ngrok-free.app` link.
+   Start the server with `TRUST_PROXY=1` (PowerShell: `$env:TRUST_PROXY=1; npm start`) so the login limit sees each visitor's real address. For Google sign-in, add the https link to **Authorised JavaScript origins** in Google Cloud.
+3. **Always-on hosting.** Use a host that gives Node.js 22.13+ and a disk that is kept between restarts (the database is the file `cafeteria.db`), or a server of the school.
+

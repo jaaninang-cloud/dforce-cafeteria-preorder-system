@@ -1,6 +1,6 @@
 {
   "name": "cafeteria-preorder",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "CSPC Cafeteria Pre-Order System (Capstone Project)",
   "main": "server.js",
   "scripts": {
